@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --radius-control: 0.75rem;
+  --radius-panel: 1.25rem;
+}
+
+:root {
+  --canvas: #f2f2f5;
+  --surface: #ffffff;
+  --surface-2: #f7f7fa;
+  --ink: #1b1b1f;
+  --ink-2: #5d5d66; /* 6.3:1 on white */
+  --line: rgb(0 0 0 / 0.09);
+  --accent: #0066d6;
+  --accent-ink: #ffffff;
+  --ok: #1a7f45;
+  --warn: #8a5a00;
+  --bad: #c1292e;
+  --glass-bg: rgb(255 255 255 / 0.62);
+  --glass-border: rgb(255 255 255 / 0.7);
+  --glass-edge: rgb(0 0 0 / 0.08);
+  --glass-shadow: 0 8px 30px rgb(20 20 40 / 0.1);
+}
+
+.dark {
+  --canvas: #0b0b0e;
+  --surface: #17171b;
+  --surface-2: #1f1f24;
+  --ink: #f3f3f6;
+  --ink-2: #a2a2ad;
+  --line: rgb(255 255 255 / 0.1);
+  --accent: #4da3ff;
+  --accent-ink: #04111f;
+  --ok: #4cc38a;
+  --warn: #e0b04a;
+  --bad: #ff7a7f;
+  --glass-bg: rgb(38 38 46 / 0.55);
+  --glass-border: rgb(255 255 255 / 0.12);
+  --glass-edge: rgb(0 0 0 / 0.5);
+  --glass-shadow: 0 8px 30px rgb(0 0 0 / 0.45);
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Liquid glass: used only on chrome (sidebar, top bar, toolbar, popovers, dialogs). */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    0 0 0 0.5px var(--glass-edge),
+    var(--glass-shadow);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .glass {
+    background: var(--surface);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+.pop-in {
+  animation: pop-in 0.18s ease-out;
+}
