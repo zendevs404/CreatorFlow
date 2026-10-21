@@ -1,24 +1,39 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { ImageIcon, Plus, Search } from "lucide-react";
 import { DeletePostButton } from "@/components/delete-post-button";
+import { EditPostDialog } from "@/components/edit-post-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
-import { listPosts, postFilterSchema } from "@/lib/posts/queries";
+import { loadPostMedia, countPostMedia } from "@/lib/posts/media";
+import { getPost, listPosts, postFilterSchema } from "@/lib/posts/queries";
 import { isUserEditable, POST_STATUSES, STATUS_LABEL } from "@/lib/posts/status";
 import { requireUser } from "@/lib/supabase/session";
+import { canSchedule, getConnectionState } from "@/lib/threads/accounts";
 import { formatInZone } from "@/lib/time";
 
 export const metadata: Metadata = { title: "Posts" };
 
 export default async function PostsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const filter = postFilterSchema.parse(await searchParams);
+  const sp = await searchParams;
+  const filter = postFilterSchema.parse(sp);
   const { supabase, user, profile } = await requireUser();
   const posts = await listPosts(supabase, user.id, filter);
   const filtered = Boolean(filter.q || filter.status);
+  const mediaCounts = await countPostMedia(supabase, user.id, posts.map((p) => p.id));
+
+  const keep = new URLSearchParams();
+  if (filter.q) keep.set("q", filter.q);
+  if (filter.status) keep.set("status", filter.status);
+  const base = keep.toString() ? `/posts?${keep.toString()}` : "/posts";
+  const editHref = (id: string) => `/posts?${new URLSearchParams({ ...Object.fromEntries(keep), edit: id }).toString()}`;
+
+  const threadsReady = canSchedule(await getConnectionState(supabase, user.id));
+  const editing = sp.edit ? await getPost(supabase, user.id, sp.edit) : null;
+  const editingMedia = editing ? ((await loadPostMedia(supabase, user.id, [editing.id])).get(editing.id) ?? []) : [];
 
   return (
     <>
@@ -70,11 +85,18 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
           {posts.map((p) => (
             <li key={p.id} className="flex items-start gap-4 p-4">
               <div className="min-w-0 flex-1">
-                <Link href={`/studio/${p.id}`} className="line-clamp-2 break-words font-medium hover:underline">
-                  {p.content.trim() || "Untitled draft"}
+                <Link href={editHref(p.id)} scroll={false} className="line-clamp-2 break-words font-medium hover:underline">
+                  {p.content.trim() || (mediaCounts.get(p.id) ? "Image post" : "Untitled draft")}
                 </Link>
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-2">
                   <StatusBadge status={p.status} />
+                  {mediaCounts.get(p.id) ? (
+                    <span className="inline-flex items-center gap-1">
+                      <ImageIcon className="size-3.5" aria-hidden />
+                      {mediaCounts.get(p.id)}
+                      <span className="sr-only"> images</span>
+                    </span>
+                  ) : null}
                   {p.scheduled_at ? <span>{formatInZone(p.scheduled_at, profile.timezone)}</span> : <span>Updated {formatInZone(p.updated_at, profile.timezone)}</span>}
                   {p.failure_reason ? <span className="text-bad">{p.failure_reason}</span> : null}
                 </div>
@@ -84,6 +106,24 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
           ))}
         </ul>
       )}
+
+      {sp.edit && !editing ? (
+        <p role="alert" className="mt-4 rounded-control bg-bad/10 px-3 py-2 text-sm text-bad">
+          That post no longer exists. <Link href={base} className="underline">Dismiss</Link>
+        </p>
+      ) : null}
+      {editing ? (
+        <EditPostDialog
+          key={`${editing.id}-${editing.updated_at}`}
+          post={editing}
+          media={editingMedia}
+          timezone={profile.timezone}
+          displayName={profile.display_name ?? "You"}
+          userId={user.id}
+          threadsReady={threadsReady}
+          closeHref={base}
+        />
+      ) : null}
     </>
   );
 }

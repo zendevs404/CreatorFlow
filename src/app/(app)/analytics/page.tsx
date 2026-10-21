@@ -18,7 +18,7 @@ export default function AnalyticsPage() {
           </Button>
         }
       >
-        No metrics are shown until a Threads account is connected and the API returns real data. Account connection arrives in Phase 2, and insights in Phase 3.
+        No metrics are shown until a Threads account is connected and the API returns real data. Insights arrive in Phase 3.
       </EmptyState>
     </>
   );

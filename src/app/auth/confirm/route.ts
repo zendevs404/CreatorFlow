@@ -1,5 +1,6 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { publicOrigin } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 
 const OTP_TYPES: readonly EmailOtpType[] = ["signup", "email", "recovery", "invite", "magiclink", "email_change"];
@@ -14,11 +15,12 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = OTP_TYPES.find((t) => t === searchParams.get("type"));
   const next = safeNext(searchParams.get("next"));
+  const origin = publicOrigin(request.url);
 
   if (tokenHash && type) {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
-    if (!error) return NextResponse.redirect(new URL(next, request.url));
+    if (!error) return NextResponse.redirect(new URL(next, origin));
   }
-  return NextResponse.redirect(new URL("/login?error=confirm", request.url));
+  return NextResponse.redirect(new URL("/login?error=confirm", origin));
 }

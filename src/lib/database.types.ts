@@ -12,6 +12,7 @@ export type PostRow = {
   external_post_id: string | null;
   published_at: string | null;
   failure_reason: string | null;
+  claimed_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -32,7 +33,13 @@ export type ThreadsAccountRow = {
   token_expires_at: string | null;
   connected_at: string;
   revoked_at: string | null;
+  token_refreshed_at: string | null;
+  needs_reauth: boolean;
+  last_error: string | null;
 };
+
+/** Columns only server code (service role) can read or write. */
+export type ThreadsAccountSecretRow = ThreadsAccountRow & { access_token_ciphertext: string | null };
 
 export type PublishingAttemptRow = {
   id: string;
@@ -46,13 +53,27 @@ export type PublishingAttemptRow = {
   finished_at: string | null;
 };
 
+export type PostMediaRow = {
+  id: string;
+  post_id: string;
+  user_id: string;
+  storage_path: string;
+  mime_type: "image/jpeg" | "image/png";
+  size_bytes: number;
+  width: number;
+  height: number;
+  position: number;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
       posts: {
         Row: PostRow;
         Insert: Partial<Pick<PostRow, "content" | "status" | "scheduled_at" | "timezone">> & { user_id: string };
-        Update: Partial<Pick<PostRow, "content" | "status" | "scheduled_at" | "timezone" | "failure_reason">>;
+        /** Server-managed columns are listed too; column grants stop user sessions from writing them. */
+        Update: Partial<Pick<PostRow, "content" | "status" | "scheduled_at" | "timezone" | "failure_reason" | "claimed_at" | "external_container_id" | "external_post_id" | "published_at" | "threads_account_id">>;
         Relationships: [];
       };
       profiles: {
@@ -62,20 +83,29 @@ export type Database = {
         Relationships: [];
       };
       threads_accounts: {
-        Row: ThreadsAccountRow;
-        Insert: never;
-        Update: never;
+        Row: ThreadsAccountSecretRow;
+        Insert: Partial<Omit<ThreadsAccountSecretRow, "id">> & { user_id: string; threads_user_id: string };
+        Update: Partial<Omit<ThreadsAccountSecretRow, "id" | "user_id">>;
+        Relationships: [];
+      };
+      post_media: {
+        Row: PostMediaRow;
+        Insert: Omit<PostMediaRow, "id" | "created_at">;
+        Update: Partial<Pick<PostMediaRow, "position">>;
         Relationships: [];
       };
       publishing_attempts: {
         Row: PublishingAttemptRow;
-        Insert: never;
-        Update: never;
+        Insert: Partial<Omit<PublishingAttemptRow, "id">> & Pick<PublishingAttemptRow, "post_id" | "user_id" | "attempt_number">;
+        Update: Partial<Pick<PublishingAttemptRow, "outcome" | "error_code" | "error_message" | "finished_at">>;
         Relationships: [];
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      claim_due_posts: { Args: { batch_size?: number }; Returns: { id: string; user_id: string }[] };
+      requeue_stale_publishing: { Args: { stale_after?: string }; Returns: { id: string; user_id: string; claimed_at: string }[] };
+    };
     Enums: { post_status: PostStatus };
     CompositeTypes: Record<string, never>;
   };

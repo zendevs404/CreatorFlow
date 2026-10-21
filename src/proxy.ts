@@ -2,7 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured } from "@/lib/env";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/auth/confirm", "/setup"];
+// /api/inngest is called by Inngest (signature-verified by the SDK), not by a browser session.
+const PUBLIC_PATHS = ["/login", "/signup", "/auth/confirm", "/setup", "/api/inngest"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

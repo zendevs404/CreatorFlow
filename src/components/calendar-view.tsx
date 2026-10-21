@@ -138,13 +138,13 @@ export function CalendarView({ view, anchor, days, today, timezone, posts }: Pro
                       Cancel schedule
                     </Button>
                     <Button asChild variant="ghost">
-                      <Link href={`/studio/${selected.id}`}>Edit text</Link>
+                      <Link href={`/posts?edit=${selected.id}`}>Edit text</Link>
                     </Button>
                   </div>
                 </>
               ) : (
                 <Button asChild>
-                  <Link href={`/studio/${selected.id}`}>Open post</Link>
+                  <Link href={`/posts?edit=${selected.id}`}>Open post</Link>
                 </Button>
               )}
             </div>

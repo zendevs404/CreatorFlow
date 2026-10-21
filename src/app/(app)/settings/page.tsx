@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
-import { LogOut, Plug } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { SettingsForm } from "@/components/settings-form";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth-actions";
+import { missingServerEnv } from "@/lib/env";
 import { requireUser } from "@/lib/supabase/session";
+import { ThreadsIntegration } from "@/components/threads-integration";
+import { getConnectionState } from "@/lib/threads/accounts";
+import { redirectUriFor } from "@/lib/threads/oauth";
+import { formatInZone } from "@/lib/time";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -19,8 +24,20 @@ function Section({ title, description, children }: { title: string; description?
   );
 }
 
-export default async function SettingsPage() {
-  const { user, profile } = await requireUser();
+const THREADS_NOTICES: Record<string, { ok: boolean; text: string }> = {
+  connected: { ok: true, text: "Threads connected." },
+  denied: { ok: false, text: "Threads permission was not granted, so nothing was connected." },
+  invalid_state: { ok: false, text: "The connection attempt could not be verified (it may have expired). Please try again." },
+  error: { ok: false, text: "Threads could not be connected. Check the app settings and try again." },
+};
+
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ threads?: string }> }) {
+  const { threads } = await searchParams;
+  const { supabase, user, profile } = await requireUser();
+  const connection = await getConnectionState(supabase, user.id);
+  const notice = threads ? THREADS_NOTICES[threads] : undefined;
+  const connected = connection.status === "connected";
+  const expired = connected && connection.expiresAt ? new Date(connection.expiresAt) <= new Date() : false;
   const zones = Intl.supportedValuesOf("timeZone");
   const timezones = zones.includes(profile.timezone) ? zones : [profile.timezone, ...zones];
 
@@ -35,12 +52,23 @@ export default async function SettingsPage() {
           <ThemeToggle />
         </Section>
         <Section title="Threads integration" description="Connect your Threads account to publish scheduled posts.">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-ink-2">No account connected. Connecting uses Meta&rsquo;s official OAuth and arrives in Phase 2; it needs a Meta app and Threads permissions.</p>
-            <Button disabled>
-              <Plug /> Connect Threads
-            </Button>
-          </div>
+          {notice ? (
+            <p role={notice.ok ? "status" : "alert"} className={`mb-4 rounded-control px-3 py-2 text-sm ${notice.ok ? "bg-ok/10 text-ok" : "bg-bad/10 text-bad"}`}>
+              {notice.text}
+            </p>
+          ) : null}
+          <ThreadsIntegration
+            view={{
+              status: connection.status,
+              username: connected ? connection.username : null,
+              expiresLabel: connected && connection.expiresAt ? formatInZone(connection.expiresAt, profile.timezone, { timeStyle: undefined }) : null,
+              needsReauth: connected ? connection.needsReauth : false,
+              expired,
+              lastError: connected ? connection.lastError : null,
+              missingServerSettings: missingServerEnv(),
+              redirectUri: redirectUriFor(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+            }}
+          />
         </Section>
         <Section title="Account" description={user.email ?? undefined}>
           <form action={signOut}>

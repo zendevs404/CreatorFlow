@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { CONNECTION_NOT_AVAILABLE } from "@/lib/threads/provider";
+import { canSchedule, getConnectionState } from "@/lib/threads/accounts";
 import { dashboardData } from "@/lib/posts/queries";
 import { requireUser } from "@/lib/supabase/session";
 import { formatInZone } from "@/lib/time";
@@ -15,7 +15,8 @@ export const metadata: Metadata = { title: "Dashboard" };
 export default async function DashboardPage() {
   const { supabase, user, profile } = await requireUser();
   const { upcoming, recent, byStatus } = await dashboardData(supabase, user.id);
-  const connection = CONNECTION_NOT_AVAILABLE;
+  const connection = await getConnectionState(supabase, user.id);
+  const ready = canSchedule(connection);
   const summary = [
     ["Drafts", byStatus.draft],
     ["Scheduled", byStatus.scheduled],
@@ -41,12 +42,16 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3">
           <Plug aria-hidden className="size-5 text-ink-2" />
           <div>
-            <p className="font-medium">{connection.connected ? "Threads connected" : "No Threads account connected"}</p>
-            <p className="text-sm text-ink-2">Connecting and publishing arrive in Phase 2. You can write and schedule drafts now.</p>
+            <p className="font-medium">
+              {connection.status === "connected" ? (ready ? `Threads connected${connection.username ? ` as @${connection.username}` : ""}` : "Threads needs to be reconnected") : "No Threads account connected"}
+            </p>
+            <p className="text-sm text-ink-2">
+              {ready ? "Scheduled posts publish automatically, even when you are offline." : "Connect your account to schedule posts. You can still write and save drafts."}
+            </p>
           </div>
         </div>
         <Button asChild variant="secondary" size="sm">
-          <Link href="/settings">Integration settings</Link>
+          <Link href="/settings">{ready ? "Integration settings" : "Connect now"}</Link>
         </Button>
       </section>
 
@@ -86,7 +91,7 @@ export default async function DashboardPage() {
             <ul className="divide-y divide-line rounded-panel bg-surface ring-1 ring-line">
               {upcoming.map((p) => (
                 <li key={p.id} className="p-4">
-                  <Link href={`/studio/${p.id}`} className="line-clamp-2 break-words font-medium hover:underline">
+                  <Link href={`/posts?edit=${p.id}`} className="line-clamp-2 break-words font-medium hover:underline">
                     {p.content.trim() || "Untitled draft"}
                   </Link>
                   <p className="mt-1 text-xs text-ink-2">{p.scheduled_at ? formatInZone(p.scheduled_at, profile.timezone) : null}</p>
@@ -101,7 +106,7 @@ export default async function DashboardPage() {
             Publishing activity
           </h2>
           {recent.length === 0 ? (
-            <EmptyState title="No publishing activity yet">Attempts to publish to Threads will be listed here with their outcome.</EmptyState>
+            <EmptyState title="No publishing activity yet">Each attempt to publish to Threads is listed here with its outcome.</EmptyState>
           ) : (
             <ul className="divide-y divide-line rounded-panel bg-surface ring-1 ring-line">
               {recent.map((a) => (
