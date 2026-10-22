@@ -13,6 +13,10 @@ export type IntegrationView = {
   needsReauth: boolean;
   expired: boolean;
   lastError: string | null;
+  /** The stored connection was authorized with the analytics permission. */
+  insightsEnabled: boolean;
+  /** The server is configured to ask for the analytics permission. */
+  insightsConfigured: boolean;
   missingServerSettings: string[];
   redirectUri: string;
 };
@@ -23,6 +27,7 @@ export function ThreadsIntegration({ view }: { view: IntegrationView }) {
   const connected = view.status === "connected";
   const broken = connected && (view.needsReauth || view.expired);
   const blocked = view.missingServerSettings.length > 0;
+  const needsInsights = connected && !broken && view.insightsConfigured && !view.insightsEnabled;
 
   function connect() {
     start(async () => {
@@ -48,6 +53,7 @@ export function ThreadsIntegration({ view }: { view: IntegrationView }) {
             <p className="font-medium">{view.username ? `@${view.username}` : "Threads account"} {broken ? "needs to be reconnected" : "is connected"}</p>
             {view.expiresLabel ? <p className="text-ink-2">Access renews automatically; current token valid until {view.expiresLabel}.</p> : null}
             {view.lastError ? <p className="mt-1 text-bad">{view.lastError}</p> : null}
+            {needsInsights ? <p className="mt-1 text-ink-2">Analytics needs one more permission. Reconnect to grant it (add threads_manage_insights to your Meta app first).</p> : null}
           </div>
         </div>
       ) : (
@@ -61,9 +67,9 @@ export function ThreadsIntegration({ view }: { view: IntegrationView }) {
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        {!connected || broken ? (
+        {!connected || broken || needsInsights ? (
           <Button variant="primary" onClick={connect} disabled={pending || blocked}>
-            <Plug /> {broken ? "Reconnect Threads" : "Connect Threads"}
+            <Plug /> {broken ? "Reconnect Threads" : needsInsights ? "Reconnect to enable analytics" : "Connect Threads"}
           </Button>
         ) : null}
         {connected ? (

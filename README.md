@@ -1,4 +1,4 @@
-# CreatorFlow (Phase 2)
+# CreatorFlow (Phase 3)
 
 A Threads-first content workspace: write posts, save drafts, schedule them on a calendar, and manage everything in one place.
 **Phase 2 adds real publishing**: official Threads OAuth, encrypted token storage, and durable scheduled publishing through Inngest. It has been tested against mocks only; run `docs/PHASE2-TESTING.md` with real Meta credentials before relying on it.
@@ -8,7 +8,7 @@ Next.js 16 (App Router, Turbopack, `proxy.ts`), React 19, strict TypeScript, Tai
 
 ## Setup
 1. `pnpm install`
-2. Create a Supabase project. In the SQL editor, run `supabase/migrations/0001_init.sql`, then `0002_post_media.sql` (private `post-media` bucket, storage policies, `post_media` table), then `0003_publishing.sql` (token refresh columns, atomic claim functions).
+2. Create a Supabase project. In the SQL editor, run `supabase/migrations/0001_init.sql`, then `0002_post_media.sql` (private `post-media` bucket, storage policies, `post_media` table), then `0003_publishing.sql` (token refresh columns, atomic claim functions), then `0004_insights_ai_deletion.sql` (insights cache, AI usage log, Meta deletion log).
 3. Supabase > Authentication > URL Configuration: add `http://localhost:3000/auth/confirm` to redirect URLs (and your production URL later). Email confirmation can stay on; the app handles the confirmation link.
 4. `cp .env.example .env.local` and fill in every value (see comments inside). `TOKEN_ENCRYPTION_KEY`: `openssl rand -base64 32`.
 5. Meta app setup, redirect URI, and test users: follow section 0 of `docs/PHASE2-TESTING.md`.
@@ -56,11 +56,22 @@ Next.js 16 (App Router, Turbopack, `proxy.ts`), React 19, strict TypeScript, Tai
 ## Not verified here
 No real Supabase project was available when this was built, so sign-up, sign-in, RLS behavior, and data flows were **not** tested end to end. After step 2-4 above, create an account, then check: draft create/edit/delete, scheduling, rescheduling and cancelling in the calendar, and that a second account cannot see the first account's posts.
 
-## Known gaps and blockers
-- Not tested against real Meta or a real Supabase project here. Use `docs/PHASE2-TESTING.md`.
-- Meta requires a Deauthorize callback URL and a Data Deletion Requests URL, and App Review for `threads_content_publish`, before users outside your app roles can connect. The two endpoints are not built yet (Phase 3).
-- Disconnecting deletes our stored token. Meta's docs describe no revocation endpoint, so users can also remove the app inside Threads.
-- Orphaned uploads and Threads containers that expire after 24 h are harmless; a cleanup job is Phase 3.
+## Phase 3: AI, insights, Meta callbacks, hardening
+- **AI assist** (Content Studio and the Posts modal): Ideas, Hooks, Rewrite (with tone) and Variations. It runs only on the server through a provider adapter (`src/lib/ai/provider.ts`): **Google Gemini** (free tier available, `GEMINI_API_KEY`) or **Anthropic** (`ANTHROPIC_API_KEY`); another provider needs only the `AiProvider` interface. See `docs/GEMINI-SETUP.md`. With no key the panel is disabled and explains why; nothing is ever generated locally. The panel also tells users how their text is handled (on Gemini's free tier Google may use submitted content to improve its products). Replies are validated as JSON, suggestions over the 500-character Threads limit are dropped (never trimmed), failures show an honest error, and each user is limited to 20 requests per hour (logged in `ai_usage`: type and time only, not your text).
+- **Insights** (Analytics): real numbers from Threads only. Account level: followers and 7-day views, likes, replies, reposts and quotes (`/{user-id}/threads_insights`). Post level: views, likes, replies, reposts and quotes for the 25 most recent published posts (`/{media-id}/insights`). Stored as snapshots; a metric Threads does not return is shown as "—". Refresh is manual (throttled to once per 15 minutes per user) and automatic every 6 hours. Needs the `threads_manage_insights` permission; existing connections must reconnect. Set `THREADS_ENABLE_INSIGHTS=false` to run without it.
+- **Meta callbacks**: `POST /api/threads/deauthorize` (revokes the stored token) and `POST /api/threads/data-deletion` (deletes the token, account link, insights and Threads post ids, then returns Meta's `{url, confirmation_code}`), both authenticated by verifying Meta's `signed_request` HMAC with the app secret. Public status page at `/data-deletion?code=...` and a starter `/privacy` page that the operator must review.
+- **Hardening**: security headers (nosniff, frame denial, referrer policy, permissions policy, HSTS, a conservative CSP), global error and not-found pages, no secrets in the browser bundle, dependency audit clean.
+- **Tests**: `pnpm check` (lint, types, 134 unit/component tests, build) and `pnpm smoke` (HTTP smoke test against a running server). See `docs/PHASE3-TESTING.md`, `docs/PHASE2-TESTING.md` and `docs/DEPLOYMENT.md`.
 
-## Phase 3 (next)
-Optional server-side AI assistance (disabled with an explanation when no provider key is set), real Threads insights for Analytics, the deauthorize / data-deletion callbacks, end-to-end smoke tests, security checks, and deployment docs.
+## Branding and motion
+- **Logo**: `public/logo.png` (transparent, used by `src/components/logo.tsx` on the sign in, sign up, setup page, sidebar and mobile header, always next to the text "Creator Flow"), plus the favicon `src/app/icon.png` and iOS icon `src/app/apple-icon.png`. The supplied picture was only 303x286 px, so very large uses look soft; replace these three files with a high-resolution or SVG version when you have one (same names, no code change).
+- **Motion** (the `motion` package, `src/components/motion.tsx`): page entrance on every navigation (`src/app/(app)/template.tsx`), staggered cards and list rows, counting-up numbers on Dashboard and Analytics, a sliding active pill in the sidebar and bottom nav, spring toasts, animated image thumbnails, calendar month/week transitions, an expanding AI assist panel, and drifting background glows on sign in/up. `MotionConfig reducedMotion="user"` plus a global CSS rule turn movement off for people who prefer reduced motion.
+- **Dropdowns**: `src/components/ui/dropdown.tsx` (Radix Select) replaces native selects for the post status filter, timezone and AI tone, with open/close animations in `globals.css`. It is keyboard accessible and still submits with plain forms. Dialogs use the same open/close animation approach.
+- Three.js is not used; Motion covers everything above without a heavy WebGL dependency.
+
+## Known gaps and blockers
+- Not tested against real Meta, Anthropic or a real Supabase project from this sandbox. Run the procedures in `docs/`.
+- Browser end-to-end tests (Playwright) are not included: they need a real Supabase project and test accounts. `pnpm smoke` covers the HTTP layer only.
+- Meta must approve the app (App Review for `threads_content_publish` and `threads_manage_insights`) before users outside your app roles can connect.
+- How Meta's deauthorize/deletion `user_id` maps to a Threads user id is not spelled out in the pages I read; we match it to the stored Threads user id (see `docs/PHASE3-TESTING.md`).
+- Not built: `shares` insights (marked in development by Meta), follower demographics, alt text, video, replies and mentions, account deletion inside the app, and a cleanup job for orphaned uploads.

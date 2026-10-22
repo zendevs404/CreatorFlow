@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
-import { getServerEnv } from "@/lib/env";
+import { getServerEnv, insightsEnabledByConfig } from "@/lib/env";
 import { publicOrigin } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
       username: profile.username,
       longLivedToken: long.accessToken,
       expiresInSeconds: long.expiresInSeconds,
+      insightsEnabled: insightsEnabledByConfig(),
     });
     return back("connected");
   } catch (err) {

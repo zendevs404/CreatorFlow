@@ -33,8 +33,8 @@ describe("token refresh timing (Meta: >= 24h old, not expired, 60-day tokens)", 
 describe("canSchedule", () => {
   it("needs a connected, valid, unflagged account", () => {
     expect(canSchedule({ status: "disconnected" }, now)).toBe(false);
-    expect(canSchedule({ status: "connected", username: "a", expiresAt: iso(DAY), needsReauth: false, lastError: null }, now)).toBe(true);
-    expect(canSchedule({ status: "connected", username: "a", expiresAt: iso(-DAY), needsReauth: false, lastError: null }, now)).toBe(false);
-    expect(canSchedule({ status: "connected", username: "a", expiresAt: iso(DAY), needsReauth: true, lastError: null }, now)).toBe(false);
+    expect(canSchedule({ status: "connected", username: "a", expiresAt: iso(DAY), needsReauth: false, lastError: null, insightsEnabled: true }, now)).toBe(true);
+    expect(canSchedule({ status: "connected", username: "a", expiresAt: iso(-DAY), needsReauth: false, lastError: null, insightsEnabled: true }, now)).toBe(false);
+    expect(canSchedule({ status: "connected", username: "a", expiresAt: iso(DAY), needsReauth: true, lastError: null, insightsEnabled: true }, now)).toBe(false);
   });
 });

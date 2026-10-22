@@ -1,6 +1,7 @@
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Logo } from "@/components/logo";
 import { signOut } from "@/lib/auth-actions";
 import { Button } from "@/components/ui/button";
 import { BottomNav, SidebarNav } from "./nav";
@@ -12,11 +13,8 @@ export function AppShell({ displayName, email, children }: { displayName: string
         Skip to content
       </a>
       <aside className="glass fixed inset-y-3 left-3 z-30 hidden w-60 flex-col rounded-panel p-4 md:flex">
-        <Link href="/dashboard" className="mb-6 flex items-center gap-2 px-2 text-base font-semibold tracking-tight">
-          <span aria-hidden className="grid size-7 place-items-center rounded-lg bg-ink text-xs text-canvas">
-            cf
-          </span>
-          CreatorFlow
+        <Link href="/dashboard" aria-label="Creator Flow home" className="mb-6 px-2">
+          <Logo size={34} />
         </Link>
         <SidebarNav />
         <div className="mt-auto space-y-3 border-t border-line pt-4">
@@ -32,8 +30,8 @@ export function AppShell({ displayName, email, children }: { displayName: string
         </div>
       </aside>
       <header className="glass sticky top-3 z-20 mx-3 mt-3 flex items-center justify-between rounded-full px-4 py-2 md:hidden">
-        <Link href="/dashboard" className="text-sm font-semibold">
-          CreatorFlow
+        <Link href="/dashboard" aria-label="Creator Flow home">
+          <Logo size={26} />
         </Link>
         <form action={signOut}>
           <Button type="submit" variant="ghost" size="sm" aria-label="Sign out">

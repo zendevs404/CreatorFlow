@@ -1,6 +1,7 @@
 "use client";
 
 import { BarChart3, CalendarDays, LayoutDashboard, ListChecks, PenLine, Settings } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -25,10 +26,11 @@ export function SidebarNav() {
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={cn("flex items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-colors", active ? "bg-accent/12 text-accent" : "text-ink-2 hover:bg-line hover:text-ink")}
+            className={cn("relative flex items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-colors", active ? "text-accent" : "text-ink-2 hover:bg-line hover:text-ink")}
           >
-            <Icon className="size-[18px]" aria-hidden />
-            {label}
+            {active ? <motion.span layoutId="sidebar-pill" className="absolute inset-0 rounded-control bg-accent/12" transition={{ type: "spring", stiffness: 380, damping: 32 }} /> : null}
+            <Icon className="relative size-[18px]" aria-hidden />
+            <span className="relative">{label}</span>
           </Link>
         );
       })}
@@ -48,9 +50,10 @@ export function BottomNav() {
             href={href}
             aria-label={label}
             aria-current={active ? "page" : undefined}
-            className={cn("flex h-11 items-center justify-center rounded-full transition-colors", active ? "bg-accent/15 text-accent" : "text-ink-2")}
+            className={cn("relative flex h-11 items-center justify-center rounded-full transition-colors", active ? "text-accent" : "text-ink-2")}
           >
-            <Icon className="size-5" aria-hidden />
+            {active ? <motion.span layoutId="bottom-pill" className="absolute inset-0 rounded-full bg-accent/15" transition={{ type: "spring", stiffness: 380, damping: 32 }} /> : null}
+            <Icon className="relative size-5" aria-hidden />
           </Link>
         );
       })}

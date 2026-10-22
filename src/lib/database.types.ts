@@ -36,6 +36,7 @@ export type ThreadsAccountRow = {
   token_refreshed_at: string | null;
   needs_reauth: boolean;
   last_error: string | null;
+  insights_enabled: boolean;
 };
 
 /** Columns only server code (service role) can read or write. */
@@ -66,6 +67,36 @@ export type PostMediaRow = {
   created_at: string;
 };
 
+export type PostInsightsRow = {
+  post_id: string;
+  user_id: string;
+  views: number | null;
+  likes: number | null;
+  replies: number | null;
+  reposts: number | null;
+  quotes: number | null;
+  shares: number | null;
+  fetched_at: string;
+};
+
+export type AccountInsightsRow = {
+  user_id: string;
+  threads_account_id: string | null;
+  followers_count: number | null;
+  views_7d: number | null;
+  likes_7d: number | null;
+  replies_7d: number | null;
+  reposts_7d: number | null;
+  quotes_7d: number | null;
+  range_start: string | null;
+  range_end: string | null;
+  fetched_at: string;
+};
+
+export type AiUsageRow = { id: string; user_id: string; action: "ideas" | "hooks" | "rewrite" | "variations"; created_at: string };
+
+export type DataDeletionRow = { confirmation_code: string; threads_user_id: string; status: "completed" | "no_data"; requested_at: string };
+
 export type Database = {
   public: {
     Tables: {
@@ -86,6 +117,30 @@ export type Database = {
         Row: ThreadsAccountSecretRow;
         Insert: Partial<Omit<ThreadsAccountSecretRow, "id">> & { user_id: string; threads_user_id: string };
         Update: Partial<Omit<ThreadsAccountSecretRow, "id" | "user_id">>;
+        Relationships: [];
+      };
+      post_insights: {
+        Row: PostInsightsRow;
+        Insert: Partial<PostInsightsRow> & Pick<PostInsightsRow, "post_id" | "user_id">;
+        Update: Partial<Omit<PostInsightsRow, "post_id" | "user_id">>;
+        Relationships: [];
+      };
+      account_insights: {
+        Row: AccountInsightsRow;
+        Insert: Partial<AccountInsightsRow> & Pick<AccountInsightsRow, "user_id">;
+        Update: Partial<Omit<AccountInsightsRow, "user_id">>;
+        Relationships: [];
+      };
+      ai_usage: {
+        Row: AiUsageRow;
+        Insert: Pick<AiUsageRow, "user_id" | "action">;
+        Update: never;
+        Relationships: [];
+      };
+      data_deletion_requests: {
+        Row: DataDeletionRow;
+        Insert: Partial<DataDeletionRow> & Pick<DataDeletionRow, "confirmation_code" | "threads_user_id" | "status">;
+        Update: never;
         Relationships: [];
       };
       post_media: {

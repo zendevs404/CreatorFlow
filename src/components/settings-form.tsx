@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Dropdown } from "@/components/ui/dropdown";
+import { Field, Input } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { updateSettings } from "@/lib/auth-actions";
 
@@ -29,13 +30,7 @@ export function SettingsForm({ displayName, timezone, timezones }: { displayName
         <Input id="displayName" name="displayName" defaultValue={displayName} maxLength={80} />
       </Field>
       <Field label="Timezone" htmlFor="timezone" error={errors.timezone} hint="Used for the calendar, schedules, and every date you see.">
-        <Select id="timezone" name="timezone" defaultValue={timezone}>
-          {timezones.map((tz) => (
-            <option key={tz} value={tz}>
-              {tz}
-            </option>
-          ))}
-        </Select>
+        <Dropdown tinted id="timezone" name="timezone" defaultValue={timezone} options={timezones.map((tz) => ({ value: tz, label: tz }))} />
       </Field>
       <Button type="submit" variant="primary" disabled={pending}>
         {pending ? "Saving…" : "Save settings"}

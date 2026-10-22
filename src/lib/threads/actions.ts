@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ActionResult } from "@/lib/action-result";
-import { getServerEnv, missingServerEnv } from "@/lib/env";
+import { getServerEnv, insightsEnabledByConfig, missingServerEnv } from "@/lib/env";
 import { requireUser } from "@/lib/supabase/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { disconnectAccounts } from "@/lib/threads/accounts";
@@ -24,7 +24,7 @@ export async function connectThreads(): Promise<ActionResult> {
     path: "/api/threads",
     maxAge: OAUTH_STATE_MAX_AGE_SECONDS,
   });
-  redirect(buildAuthorizeUrl({ appId: env.THREADS_APP_ID, redirectUri: redirectUriFor(env.NEXT_PUBLIC_SITE_URL), state }));
+  redirect(buildAuthorizeUrl({ appId: env.THREADS_APP_ID, redirectUri: redirectUriFor(env.NEXT_PUBLIC_SITE_URL), state, withInsights: insightsEnabledByConfig() }));
 }
 
 export async function disconnectThreads(): Promise<ActionResult> {

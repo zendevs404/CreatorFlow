@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { decryptToken, encryptToken } from "@/lib/crypto/tokens";
-import { buildAuthorizeUrl, createOAuthState, oauthStateMatches, redirectUriFor } from "@/lib/threads/oauth";
+import { buildAuthorizeUrl, createOAuthState, oauthStateMatches, redirectUriFor, threadsScopes } from "@/lib/threads/oauth";
 
 const key = randomBytes(32).toString("base64");
 
@@ -40,12 +40,17 @@ describe("OAuth helpers", () => {
     expect(oauthStateMatches(undefined, "abc")).toBe(false);
     expect(oauthStateMatches("abc", null)).toBe(false);
   });
+  it("leaves out the insights permission when it is switched off", () => {
+    const url = new URL(buildAuthorizeUrl({ appId: "1", redirectUri: "https://x/cb", state: "s", withInsights: false }));
+    expect(url.searchParams.get("scope")).toBe("threads_basic,threads_content_publish");
+    expect(threadsScopes(true)).toContain("threads_manage_insights");
+  });
   it("builds the authorization URL with the documented parameters", () => {
     const url = new URL(buildAuthorizeUrl({ appId: "123", redirectUri: redirectUriFor("https://app.example.com/"), state: "s" }));
     expect(url.origin + url.pathname).toBe("https://threads.com/oauth/authorize");
     expect(url.searchParams.get("client_id")).toBe("123");
     expect(url.searchParams.get("redirect_uri")).toBe("https://app.example.com/api/threads/callback");
-    expect(url.searchParams.get("scope")).toBe("threads_basic,threads_content_publish");
+    expect(url.searchParams.get("scope")).toBe("threads_basic,threads_content_publish,threads_manage_insights");
     expect(url.searchParams.get("response_type")).toBe("code");
     expect(url.searchParams.get("state")).toBe("s");
   });

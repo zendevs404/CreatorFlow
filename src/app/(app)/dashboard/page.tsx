@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, CalendarDays, PenLine, Plug } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { AppearDiv, AppearLi, AppearSection, CountUp } from "@/components/motion";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -56,16 +57,18 @@ export default async function DashboardPage() {
       </section>
 
       <dl className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {summary.map(([label, n]) => (
-          <div key={label} className="rounded-panel bg-surface p-4 ring-1 ring-line">
+        {summary.map(([label, n], i) => (
+          <AppearDiv key={label} index={i} className="rounded-panel bg-surface p-4 ring-1 ring-line">
             <dt className="text-sm text-ink-2">{label}</dt>
-            <dd className="mt-1 text-3xl font-semibold tabular-nums">{n}</dd>
-          </div>
+            <dd className="mt-1 text-3xl font-semibold tabular-nums">
+              <CountUp value={n} />
+            </dd>
+          </AppearDiv>
         ))}
       </dl>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section aria-labelledby="upcoming">
+        <AppearSection aria-labelledby="upcoming" index={4}>
           <div className="mb-3 flex items-center justify-between">
             <h2 id="upcoming" className="font-semibold">
               Upcoming
@@ -89,19 +92,19 @@ export default async function DashboardPage() {
             </EmptyState>
           ) : (
             <ul className="divide-y divide-line rounded-panel bg-surface ring-1 ring-line">
-              {upcoming.map((p) => (
-                <li key={p.id} className="p-4">
+              {upcoming.map((p, i) => (
+                <AppearLi key={p.id} index={i} className="p-4">
                   <Link href={`/posts?edit=${p.id}`} className="line-clamp-2 break-words font-medium hover:underline">
                     {p.content.trim() || "Untitled draft"}
                   </Link>
                   <p className="mt-1 text-xs text-ink-2">{p.scheduled_at ? formatInZone(p.scheduled_at, profile.timezone) : null}</p>
-                </li>
+                </AppearLi>
               ))}
             </ul>
           )}
-        </section>
+        </AppearSection>
 
-        <section aria-labelledby="activity">
+        <AppearSection aria-labelledby="activity" index={5}>
           <h2 id="activity" className="mb-3 font-semibold">
             Publishing activity
           </h2>
@@ -109,18 +112,18 @@ export default async function DashboardPage() {
             <EmptyState title="No publishing activity yet">Each attempt to publish to Threads is listed here with its outcome.</EmptyState>
           ) : (
             <ul className="divide-y divide-line rounded-panel bg-surface ring-1 ring-line">
-              {recent.map((a) => (
-                <li key={a.id} className="flex items-center justify-between gap-3 p-4 text-sm">
+              {recent.map((a, i) => (
+                <AppearLi key={a.id} index={i} className="flex items-center justify-between gap-3 p-4 text-sm">
                   <StatusBadge status={a.outcome === "succeeded" ? "published" : a.outcome === "failed" ? "failed" : "publishing"} />
                   <span className="min-w-0 flex-1 truncate text-ink-2">{a.error_message ?? "Completed"}</span>
                   <time className="text-xs text-ink-2" dateTime={a.started_at}>
                     {formatInZone(a.started_at, profile.timezone)}
                   </time>
-                </li>
+                </AppearLi>
               ))}
             </ul>
           )}
-        </section>
+        </AppearSection>
       </div>
     </>
   );

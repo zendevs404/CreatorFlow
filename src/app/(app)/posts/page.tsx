@@ -7,10 +7,13 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/field";
+import { Input } from "@/components/ui/field";
+import { Dropdown } from "@/components/ui/dropdown";
+import { AppearLi } from "@/components/motion";
 import { loadPostMedia, countPostMedia } from "@/lib/posts/media";
 import { getPost, listPosts, postFilterSchema } from "@/lib/posts/queries";
 import { isUserEditable, POST_STATUSES, STATUS_LABEL } from "@/lib/posts/status";
+import { getAiUiProps } from "@/lib/ai/provider";
 import { requireUser } from "@/lib/supabase/session";
 import { canSchedule, getConnectionState } from "@/lib/threads/accounts";
 import { formatInZone } from "@/lib/time";
@@ -53,14 +56,14 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
           <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-2" />
           <Input name="q" defaultValue={filter.q} placeholder="Search post text" aria-label="Search post text" className="pl-9" />
         </div>
-        <Select name="status" defaultValue={filter.status ?? ""} aria-label="Filter by status" className="w-44">
-          <option value="">All statuses</option>
-          {POST_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABEL[s]}
-            </option>
-          ))}
-        </Select>
+        <div className="w-44">
+          <Dropdown
+            name="status"
+            aria-label="Filter by status"
+            defaultValue={filter.status ?? "all"}
+            options={[{ value: "all", label: "All statuses" }, ...POST_STATUSES.map((st) => ({ value: st, label: STATUS_LABEL[st] }))]}
+          />
+        </div>
         <Button type="submit">Apply</Button>
         {filtered ? (
           <Button asChild variant="ghost">
@@ -82,8 +85,8 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
         </EmptyState>
       ) : (
         <ul className="divide-y divide-line overflow-hidden rounded-panel bg-surface ring-1 ring-line">
-          {posts.map((p) => (
-            <li key={p.id} className="flex items-start gap-4 p-4">
+          {posts.map((p, i) => (
+            <AppearLi key={p.id} index={i} className="flex items-start gap-4 p-4">
               <div className="min-w-0 flex-1">
                 <Link href={editHref(p.id)} scroll={false} className="line-clamp-2 break-words font-medium hover:underline">
                   {p.content.trim() || (mediaCounts.get(p.id) ? "Image post" : "Untitled draft")}
@@ -102,7 +105,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
                 </div>
               </div>
               {isUserEditable(p.status) ? <DeletePostButton id={p.id} /> : null}
-            </li>
+            </AppearLi>
           ))}
         </ul>
       )}
@@ -121,6 +124,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
           displayName={profile.display_name ?? "You"}
           userId={user.id}
           threadsReady={threadsReady}
+          ai={getAiUiProps()}
           closeHref={base}
         />
       ) : null}

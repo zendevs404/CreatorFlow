@@ -5,7 +5,7 @@ import { SettingsForm } from "@/components/settings-form";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth-actions";
-import { missingServerEnv } from "@/lib/env";
+import { insightsEnabledByConfig, missingServerEnv } from "@/lib/env";
 import { requireUser } from "@/lib/supabase/session";
 import { ThreadsIntegration } from "@/components/threads-integration";
 import { getConnectionState } from "@/lib/threads/accounts";
@@ -65,6 +65,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               needsReauth: connected ? connection.needsReauth : false,
               expired,
               lastError: connected ? connection.lastError : null,
+              insightsEnabled: connected ? connection.insightsEnabled : true,
+              insightsConfigured: insightsEnabledByConfig(),
               missingServerSettings: missingServerEnv(),
               redirectUri: redirectUriFor(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
             }}

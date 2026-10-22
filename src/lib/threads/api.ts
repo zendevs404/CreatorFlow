@@ -27,6 +27,28 @@ export class ThreadsApiError extends Error {
 
 export type ContainerStatus = "IN_PROGRESS" | "FINISHED" | "PUBLISHED" | "ERROR" | "EXPIRED";
 
+/** Metric name -> value; null when Threads did not return that metric. */
+export type InsightValues = Record<string, number | null>;
+
+/** Threads returns either `total_value.value` or a `values` list (time series / lifetime). Sum the latter. */
+export function readInsightValues(body: Record<string, unknown>, requested: readonly string[]): InsightValues {
+  const out: InsightValues = Object.fromEntries(requested.map((m) => [m, null]));
+  const data = Array.isArray(body.data) ? body.data : [];
+  for (const entry of data) {
+    if (!isRecord(entry) || typeof entry.name !== "string" || !(entry.name in out)) continue;
+    const total = isRecord(entry.total_value) ? entry.total_value.value : undefined;
+    if (typeof total === "number") {
+      out[entry.name] = total;
+      continue;
+    }
+    if (Array.isArray(entry.values)) {
+      const nums = entry.values.flatMap((v) => (isRecord(v) && typeof v.value === "number" ? [v.value] : []));
+      if (nums.length > 0) out[entry.name] = nums.reduce((a, b) => a + b, 0);
+    }
+  }
+  return out;
+}
+
 export type CreateContainerParams =
   | { mediaType: "TEXT"; text: string }
   | { mediaType: "IMAGE"; imageUrl: string; text?: string; isCarouselItem?: boolean }
@@ -144,6 +166,24 @@ export function createThreadsApi(options: Options = {}) {
       const config = first && isRecord(first.config) ? first.config : null;
       if (!first || !config) throw new ThreadsApiError("provider_error", "Unexpected response from Threads (publishing limit).");
       return { used: Number(first.quota_usage), total: Number(config.quota_total) };
+    },
+
+    /** Per-post metrics (threads_manage_insights). Lifetime values; replies of replies are not included. */
+    async getMediaInsights(token: string, mediaId: string, metrics: readonly string[]): Promise<InsightValues> {
+      const q = new URLSearchParams({ metric: metrics.join(","), access_token: token });
+      const b = await call("read post insights", `${graph}/${v}/${encodeURIComponent(mediaId)}/insights?${q}`);
+      return readInsightValues(b, metrics);
+    },
+
+    /** Account metrics (threads_manage_insights). since/until are Unix seconds; followers_count takes no range. */
+    async getUserInsights(token: string, userId: string, metrics: readonly string[], range?: { since: number; until: number }): Promise<InsightValues> {
+      const q = new URLSearchParams({ metric: metrics.join(","), access_token: token });
+      if (range) {
+        q.set("since", String(range.since));
+        q.set("until", String(range.until));
+      }
+      const b = await call("read account insights", `${graph}/${v}/${encodeURIComponent(userId)}/threads_insights?${q}`);
+      return readInsightValues(b, metrics);
     },
 
     async createContainer(token: string, userId: string, p: CreateContainerParams): Promise<string> {

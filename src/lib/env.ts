@@ -34,6 +34,8 @@ const serverEnvSchema = z.object({
   THREADS_APP_ID: z.string().regex(/^\d+$/, "THREADS_APP_ID must be the numeric Threads App ID."),
   THREADS_APP_SECRET: z.string().min(8),
   NEXT_PUBLIC_SITE_URL: z.url(),
+  /** "false" removes the insights permission from the connect flow (default: on). */
+  THREADS_ENABLE_INSIGHTS: z.enum(["true", "false"]).default("true"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -52,4 +54,9 @@ export function getServerEnv(): ServerEnv {
 export function missingServerEnv(): string[] {
   const parsed = serverEnvSchema.safeParse(process.env);
   return parsed.success ? [] : [...new Set(parsed.error.issues.map((i) => String(i.path[0])))];
+}
+
+/** Insights need the threads_manage_insights permission to be added to the Meta app. */
+export function insightsEnabledByConfig(): boolean {
+  return process.env.THREADS_ENABLE_INSIGHTS !== "false";
 }

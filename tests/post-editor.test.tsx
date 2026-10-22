@@ -19,7 +19,7 @@ type EditorProps = Parameters<typeof PostEditor>[0];
 function setup(props: Partial<EditorProps> = {}) {
   return render(
     <ToastProvider>
-      <PostEditor mode="create" post={null} timezone="Asia/Jakarta" displayName="Ayu" userId={USER} threadsReady {...props} />
+      <PostEditor mode="create" post={null} timezone="Asia/Jakarta" displayName="Ayu" userId={USER} threadsReady ai={{ enabled: false, reason: "AI assistance is off because no AI provider key is configured on the server.", notice: null }} {...props} />
     </ToastProvider>,
   );
 }

@@ -9,21 +9,24 @@ type Client = SupabaseClient<Database>;
 
 export type ConnectionState =
   | { status: "disconnected" }
-  | { status: "connected"; username: string | null; expiresAt: string | null; needsReauth: boolean; lastError: string | null };
+  | { status: "connected"; username: string | null; expiresAt: string | null; needsReauth: boolean; lastError: string | null; insightsEnabled: boolean };
 
 /** Reads the safe columns with the user's own session (RLS + column grants hide ciphertext). */
 export async function getConnectionState(supabase: Client, userId: string): Promise<ConnectionState> {
   const { data, error } = await supabase
     .from("threads_accounts")
-    .select("username,token_expires_at,needs_reauth,last_error")
+    .select("username,token_expires_at,needs_reauth,last_error,insights_enabled")
     .eq("user_id", userId)
     .is("revoked_at", null)
     .order("connected_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (error) throw new Error("Could not load the Threads connection.");
+  if (error) {
+    console.error("Could not read threads_accounts", { code: error.code, message: error.message });
+    throw new Error("Could not load the Threads connection. If you recently updated the app, run the newest SQL files in supabase/migrations (0003 and 0004) in the Supabase SQL Editor.");
+  }
   if (!data) return { status: "disconnected" };
-  return { status: "connected", username: data.username, expiresAt: data.token_expires_at, needsReauth: data.needs_reauth, lastError: data.last_error };
+  return { status: "connected", username: data.username, expiresAt: data.token_expires_at, needsReauth: data.needs_reauth, lastError: data.last_error, insightsEnabled: data.insights_enabled };
 }
 
 export function canSchedule(state: ConnectionState, now = new Date()): boolean {
@@ -35,7 +38,7 @@ export function canSchedule(state: ConnectionState, now = new Date()): boolean {
 export async function saveConnection(
   admin: Client,
   encryptionKey: string,
-  p: { userId: string; threadsUserId: string; username: string | null; longLivedToken: string; expiresInSeconds: number },
+  p: { userId: string; threadsUserId: string; username: string | null; longLivedToken: string; expiresInSeconds: number; insightsEnabled?: boolean },
   now = new Date(),
 ): Promise<void> {
   const { error: revokeError } = await admin
@@ -58,6 +61,7 @@ export async function saveConnection(
       revoked_at: null,
       needs_reauth: false,
       last_error: null,
+      insights_enabled: p.insightsEnabled ?? false,
     },
     { onConflict: "user_id,threads_user_id" },
   );

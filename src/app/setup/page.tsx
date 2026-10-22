@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Logo } from "@/components/logo";
 import { isSupabaseConfigured } from "@/lib/env";
 
 export default function SetupPage() {
@@ -6,6 +7,7 @@ export default function SetupPage() {
   return (
     <main className="mx-auto grid min-h-dvh max-w-xl place-items-center px-4">
       <div className="rounded-panel bg-surface p-8 ring-1 ring-line">
+        <Logo size={44} className="mb-5" />
         <h1 className="text-2xl font-semibold tracking-tight">Connect Supabase to continue</h1>
         <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-ink-2">
           <li>Create a Supabase project and run the SQL in <code className="font-mono text-ink">supabase/migrations</code>.</li>

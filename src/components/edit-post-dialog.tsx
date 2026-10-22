@@ -13,11 +13,12 @@ type Props = {
   displayName: string;
   userId: string;
   threadsReady: boolean;
+  ai: { enabled: boolean; reason: string | null; notice: string | null };
   closeHref: string;
 };
 
 /** The same editor as the Content Studio, opened as a modal over the Posts list. */
-export function EditPostDialog({ post, media, timezone, displayName, userId, threadsReady, closeHref }: Props) {
+export function EditPostDialog({ post, media, timezone, displayName, userId, threadsReady, ai, closeHref }: Props) {
   const router = useRouter();
   const close = () => {
     router.replace(closeHref);
@@ -26,7 +27,7 @@ export function EditPostDialog({ post, media, timezone, displayName, userId, thr
   return (
     <Dialog open onOpenChange={(open) => !open && close()}>
       <DialogContent size="lg" title="Edit post" description="Changes here work the same as in the Content Studio.">
-        <PostEditor mode="edit" compact post={post} initialMedia={media} timezone={timezone} displayName={displayName} userId={userId} threadsReady={threadsReady} onDone={close} />
+        <PostEditor mode="edit" compact post={post} initialMedia={media} timezone={timezone} displayName={displayName} userId={userId} threadsReady={threadsReady} ai={ai} onDone={close} />
       </DialogContent>
     </Dialog>
   );

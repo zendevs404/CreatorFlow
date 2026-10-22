@@ -1,12 +1,14 @@
 "use client";
 
 import { Clock, ImagePlus, Save, Send, Trash2, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
+import { AiAssist } from "@/components/ai-assist";
 import { StatusBadge } from "@/components/status-badge";
 import { deletePost, savePost } from "@/lib/posts/actions";
 import type { EditorMedia } from "@/lib/posts/media";
@@ -29,6 +31,8 @@ type Props = {
   userId: string;
   /** Whether a usable Threads connection exists. Scheduling needs one; drafts do not. */
   threadsReady: boolean;
+  /** AI assist availability, decided on the server. */
+  ai: { enabled: boolean; reason: string | null; notice: string | null };
   /** Single-column layout, used inside the Posts modal. */
   compact?: boolean;
   onDone?: () => void;
@@ -86,8 +90,17 @@ function MediaGrid({ media, onRemove, disabled }: { media: EditorMedia[]; onRemo
   if (media.length === 0) return null;
   return (
     <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-label="Attached images">
+      <AnimatePresence initial={false}>
       {media.map((m, i) => (
-        <li key={m.path} className="group relative aspect-square overflow-hidden rounded-control bg-surface-2 ring-1 ring-line">
+        <motion.li
+          key={m.path}
+          layout
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.85 }}
+          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          className="group relative aspect-square overflow-hidden rounded-control bg-surface-2 ring-1 ring-line"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element -- signed/blob URLs from private storage */}
           <img src={m.url} alt={`Attached image ${i + 1}`} className="size-full object-cover" />
           {!disabled ? (
@@ -100,13 +113,14 @@ function MediaGrid({ media, onRemove, disabled }: { media: EditorMedia[]; onRemo
               <X className="size-4" />
             </button>
           ) : null}
-        </li>
+        </motion.li>
       ))}
+      </AnimatePresence>
     </ul>
   );
 }
 
-export function PostEditor({ mode, post, initialMedia = [], timezone, displayName, userId, threadsReady, compact = false, onDone }: Props) {
+export function PostEditor({ mode, post, initialMedia = [], timezone, displayName, userId, threadsReady, ai, compact = false, onDone }: Props) {
   const router = useRouter();
   const { notify } = useToast();
   const [pending, start] = useTransition();
@@ -230,6 +244,8 @@ export function PostEditor({ mode, post, initialMedia = [], timezone, displayNam
           </p>
         ) : null}
         {!editable ? <p className="rounded-control bg-surface-2 px-3 py-2 text-sm text-ink-2">This post is {post?.status} and can no longer be edited.</p> : null}
+
+        <AiAssist enabled={ai.enabled} reason={ai.reason} notice={ai.notice} draft={content} disabled={!editable} onUse={(t) => setContent(t)} />
 
         <div className="space-y-4 rounded-panel bg-surface p-5 ring-1 ring-line">
           <Field label="Post text" labelClassName="mb-2 text-lg font-semibold" htmlFor={`content-${mode}`} error={errors.content}>

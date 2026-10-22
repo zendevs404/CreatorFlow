@@ -19,6 +19,7 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createThreadsApi } from "@/lib/threads/api";
 import { refreshAccount } from "@/lib/threads/accounts";
+import { refreshInsights } from "@/lib/insights/service";
 import { inngest, PUBLISH_REQUESTED } from "./client";
 
 const payload = z.object({ postId: z.uuid(), userId: z.uuid() });
@@ -173,4 +174,25 @@ export const refreshThreadsTokens = inngest.createFunction(
   },
 );
 
-export const functions = [dispatchDuePosts, publishPost, refreshThreadsTokens];
+/** Every 6 hours: refresh cached insights for connected accounts (each user is throttled to once per 15 min). */
+export const refreshAllInsights = inngest.createFunction(
+  { id: "refresh-insights", triggers: [{ cron: "0 */6 * * *" }] },
+  async ({ step }) => {
+    const userIds = await step.run("find-accounts", async () => {
+      const { data, error } = await createAdminClient().from("threads_accounts").select("user_id").is("revoked_at", null).eq("needs_reauth", false).eq("insights_enabled", true).not("access_token_ciphertext", "is", null);
+      if (error) throw new Error("Could not list accounts.");
+      return [...new Set(data.map((a) => a.user_id))];
+    });
+    const outcomes: Record<string, number> = {};
+    for (const userId of userIds) {
+      const status = await step.run(`insights-${userId}`, async () => {
+        const result = await refreshInsights(createAdminClient(), createThreadsApi(), getServerEnv().TOKEN_ENCRYPTION_KEY, userId);
+        return result.status === "skipped" ? `skipped:${result.reason}` : result.status;
+      });
+      outcomes[status] = (outcomes[status] ?? 0) + 1;
+    }
+    return outcomes;
+  },
+);
+
+export const functions = [dispatchDuePosts, publishPost, refreshThreadsTokens, refreshAllInsights];

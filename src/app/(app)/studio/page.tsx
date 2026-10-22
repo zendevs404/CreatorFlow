@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { PostEditor } from "@/components/post-editor";
+import { getAiUiProps } from "@/lib/ai/provider";
 import { requireUser } from "@/lib/supabase/session";
 import { canSchedule, getConnectionState } from "@/lib/threads/accounts";
 
@@ -21,7 +22,7 @@ export default async function StudioPage() {
           </Link>
         }
       />
-      <PostEditor mode="create" post={null} timezone={profile.timezone} displayName={profile.display_name ?? "You"} userId={user.id} threadsReady={threadsReady} />
+      <PostEditor mode="create" post={null} timezone={profile.timezone} displayName={profile.display_name ?? "You"} userId={user.id} threadsReady={threadsReady} ai={getAiUiProps()} />
     </>
   );
 }

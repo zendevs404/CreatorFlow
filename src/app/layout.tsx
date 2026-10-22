@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { ThemeProvider } from "next-themes";
-import { ToastProvider } from "@/components/ui/toast";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "CreatorFlow", template: "%s · CreatorFlow" },
+  title: { default: "Creator Flow", template: "%s · Creator Flow" },
   description: "Write, schedule, and publish Threads posts from one calm workspace.",
 };
 
@@ -19,9 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-dvh antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <ToastProvider>{children}</ToastProvider>
-        </ThemeProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

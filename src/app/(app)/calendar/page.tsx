@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CalendarView } from "@/components/calendar-view";
 import { PageHeader } from "@/components/page-header";
 import { isDayKey, monthGrid, paddedRange, weekDays } from "@/lib/calendar";
+import { DEFAULT_PLATFORM } from "@/lib/platforms";
 import { listScheduled } from "@/lib/posts/queries";
 import { requireUser } from "@/lib/supabase/session";
 import { dayKey } from "@/lib/time";
@@ -17,7 +18,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const days = view === "week" ? weekDays(anchor) : monthGrid(anchor);
   const { from, to } = paddedRange(days);
   const rows = await listScheduled(supabase, user.id, from, to);
-  const posts = rows.flatMap((p) => (p.scheduled_at ? [{ id: p.id, content: p.content, status: p.status, scheduled_at: p.scheduled_at }] : []));
+  const posts = rows.flatMap((p) => (p.scheduled_at ? [{ id: p.id, content: p.content, status: p.status, scheduled_at: p.scheduled_at, platform: DEFAULT_PLATFORM }] : []));
 
   return (
     <>

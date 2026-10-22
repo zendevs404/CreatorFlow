@@ -1,9 +1,11 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
+import { PlatformBadge, PlatformIcon } from "@/components/platform-icon";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -11,11 +13,12 @@ import { Field, Input } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { addDays, addMonths } from "@/lib/calendar";
 import { cancelSchedule, reschedulePost } from "@/lib/posts/actions";
+import type { PlatformId } from "@/lib/platforms";
 import type { PostStatus } from "@/lib/posts/status";
 import { dayKey, formatInZone, utcToZonedLocal } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
-export type CalendarPost = { id: string; content: string; status: PostStatus; scheduled_at: string };
+export type CalendarPost = { id: string; content: string; status: PostStatus; scheduled_at: string; platform: PlatformId };
 
 type Props = { view: "month" | "week"; anchor: string; days: string[]; today: string; timezone: string; posts: CalendarPost[] };
 
@@ -86,7 +89,8 @@ export function CalendarView({ view, anchor, days, today, timezone, posts }: Pro
       </div>
       <p className="mb-3 text-xs text-ink-2">Times shown in {timezone}.</p>
 
-      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-panel bg-line ring-1 ring-line">
+      {/* The key replays the entrance whenever the month or week changes. */}
+      <motion.div key={`${view}-${anchor}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }} className="grid grid-cols-7 gap-px overflow-hidden rounded-panel bg-line ring-1 ring-line">
         {WEEKDAYS.map((d) => (
           <div key={d} className="bg-surface-2 px-2 py-2 text-center text-xs font-medium text-ink-2">
             {d}
@@ -104,9 +108,12 @@ export function CalendarView({ view, anchor, days, today, timezone, posts }: Pro
                     <button
                       type="button"
                       onClick={() => open(p)}
-                      className={cn("w-full truncate rounded-md px-1.5 py-1 text-left text-xs", p.status === "failed" ? "bg-bad/12 text-bad" : p.status === "published" ? "bg-ok/15 text-ok" : "bg-accent/12 text-accent")}
+                      className={cn("flex w-full items-center gap-1 rounded-md px-1.5 py-1 text-left text-xs", p.status === "failed" ? "bg-bad/12 text-bad" : p.status === "published" ? "bg-ok/15 text-ok" : "bg-accent/12 text-accent")}
                     >
-                      {formatInZone(p.scheduled_at, timezone, { dateStyle: undefined, timeStyle: "short" })} {p.content.trim() || "Untitled"}
+                      <PlatformIcon platform={p.platform} size={12} />
+                      <span className="truncate">
+                        {formatInZone(p.scheduled_at, timezone, { dateStyle: undefined, timeStyle: "short" })} {p.content.trim() || "Untitled"}
+                      </span>
                     </button>
                   </li>
                 ))}
@@ -115,7 +122,7 @@ export function CalendarView({ view, anchor, days, today, timezone, posts }: Pro
             </div>
           );
         })}
-      </div>
+      </motion.div>
 
       {posts.length === 0 ? <p className="mt-4 text-center text-sm text-ink-2">No scheduled posts in this period. Schedule one from the Content Studio.</p> : null}
 
@@ -123,7 +130,10 @@ export function CalendarView({ view, anchor, days, today, timezone, posts }: Pro
         {selected ? (
           <DialogContent title="Scheduled post" description={formatInZone(selected.scheduled_at, timezone, { dateStyle: "full", timeStyle: "short" })}>
             <div className="space-y-4">
-              <StatusBadge status={selected.status} />
+              <div className="flex flex-wrap items-center gap-3">
+                <PlatformBadge platform={selected.platform} />
+                <StatusBadge status={selected.status} />
+              </div>
               <p className="max-h-40 overflow-auto whitespace-pre-wrap break-words text-sm">{selected.content || "Untitled draft"}</p>
               {selected.status === "scheduled" ? (
                 <>

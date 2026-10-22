@@ -36,6 +36,7 @@
   --glass-border: rgb(255 255 255 / 0.7);
   --glass-edge: rgb(0 0 0 / 0.08);
   --glass-shadow: 0 8px 30px rgb(20 20 40 / 0.1);
+  --tint-base: rgb(250 252 255 / 0.82);
 }
 
 .dark {
@@ -54,6 +55,7 @@
   --glass-border: rgb(255 255 255 / 0.12);
   --glass-edge: rgb(0 0 0 / 0.5);
   --glass-shadow: 0 8px 30px rgb(0 0 0 / 0.45);
+  --tint-base: rgb(30 33 44 / 0.85);
 }
 
 html {
@@ -81,6 +83,11 @@ body {
     inset 0 1px 0 rgb(255 255 255 / 0.35),
     0 0 0 0.5px var(--glass-edge),
     var(--glass-shadow);
+}
+/* Slightly denser, lightly tinted variant of .glass for long menus where text needs to stand out. Use together with .glass. */
+.glass-tinted {
+  background: var(--tint-base);
+  background: color-mix(in srgb, var(--accent) 5%, var(--tint-base));
 }
 @supports not (backdrop-filter: blur(1px)) {
   .glass {
@@ -119,4 +126,37 @@ body {
 }
 .pop-in {
   animation: pop-in 0.18s ease-out;
+}
+
+/* Dialog and dropdown open/close. Radix keeps the element mounted until the exit animation ends.
+   Only `transform` is animated: Tailwind positions the dialog with the separate `translate` property. */
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes dialog-in { from { opacity: 0; transform: translateY(12px) scale(0.97); } }
+@keyframes dialog-out { to { opacity: 0; transform: translateY(8px) scale(0.98); } }
+@keyframes dropdown-in { from { opacity: 0; transform: translateY(-6px) scale(0.96); } }
+@keyframes dropdown-out { to { opacity: 0; transform: translateY(-4px) scale(0.97); } }
+
+.dialog-overlay[data-state="open"] { animation: fade-in 0.18s ease-out; }
+.dialog-overlay[data-state="closed"] { animation: fade-out 0.14s ease-in forwards; }
+.dialog-content[data-state="open"] { animation: dialog-in 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+.dialog-content[data-state="closed"] { animation: dialog-out 0.14s ease-in forwards; }
+.dropdown-content { transform-origin: var(--radix-select-content-transform-origin); }
+.dropdown-content[data-state="open"] { animation: dropdown-in 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
+.dropdown-content[data-state="closed"] { animation: dropdown-out 0.12s ease-in forwards; }
+
+/* Slim, rounded scrollbar for scroll areas inside glass panels (instead of the default square one with arrows). */
+.scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ink-2) 55%, transparent) transparent;
+}
+@supports not (scrollbar-width: thin) {
+  .scroll-area::-webkit-scrollbar { width: 10px; }
+  .scroll-area::-webkit-scrollbar-track { background: transparent; }
+  .scroll-area::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--ink-2) 55%, transparent);
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+  }
 }

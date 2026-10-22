@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured } from "@/lib/env";
 
 // /api/inngest is called by Inngest (signature-verified by the SDK), not by a browser session.
-const PUBLIC_PATHS = ["/login", "/signup", "/auth/confirm", "/setup", "/api/inngest"];
+// Meta's deauthorize / data-deletion callbacks are authenticated by signed_request, not by a browser session.
+const PUBLIC_PATHS = ["/login", "/signup", "/auth/confirm", "/setup", "/api/inngest", "/privacy", "/data-deletion", "/api/threads/deauthorize", "/api/threads/data-deletion"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
